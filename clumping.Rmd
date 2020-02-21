@@ -83,6 +83,7 @@ calc_clumped_tables <- function(seating){
 
 ```
 
+
 ```{r sim, cache=TRUE}
 # Those are all the tools we need. Many/most of my simulations use the tricks we
 # learned in Gov 1005: list-colums and map_* functions are your friends!
@@ -98,12 +99,68 @@ sim <-
 
 ```
 
+```{r}
+female_clumped_tables <- function(seating){
+  
+  # Given a seating --- which, again, is just a vector of length 28 with Ms and
+  # Fs in random order --- how many clumped tables are there? We will define a
+  # clumped table as one that is all M or all F. As discussed in class, there
+  # are other definitions of "clumping" that we could use.
+  
+  # Good functions test to see if their assumptions are met. See the chapter in
+  # the new 1005 textbook for discussion:
+  # https://davidkane9.github.io/PPBDS/6-functions.html
+  
+  stopifnot(is.list(seating))
+  plan <- unlist(seating)
+  
+  stopifnot(length(plan) == 28)
+  stopifnot(all(plan %in% c("M", "F")))
+
+  # It is not obvious how to do this elegantly. So, I just hack it! (Stole this
+  # approach from Beau, I think.) I grab out each table, one at a time, knowing
+  # that I have arbitrarily decided that seats 1 through 4 are Table 1, seats 5
+  # through 8 are Table 2 and so on. Then, I create a logical vector reporting
+  # whether or the person at each seat is Female. Then, I sum up this vector. If
+  # it is all Male, the sum will be zero. It it is all Female, the sum will be
+  # four. Check that, and sum of the results for each table. Obviously, you need
+  # to do a fair bit of fussing to make sure this is working. Test cases would
+  # be good!
+  
+  clumps <- 
+    (sum(plan[1:4] == "F") %in% c(4)) +
+    (sum(plan[5:8] == "F") %in% c(4)) +
+    (sum(plan[9:12] == "F") %in% c(4)) +
+    (sum(plan[13:16] == "F") %in% c(4)) +
+    (sum(plan[17:20] == "F") %in% c(4)) +
+    (sum(plan[21:24] == "F") %in% c(4)) +
+    (sum(plan[25:28] == "F") %in% c(4))
+  
+  return(clumps)
+}
+```
+
+```{r sim, cache=TRUE}
+# Those are all the tools we need. Many/most of my simulations use the tricks we
+# learned in Gov 1005: list-colums and map_* functions are your friends!
+# https://davidkane9.github.io/PPBDS/6-functions.html#list-columns-and-map_-functions
+
+# I don't really need cache=TRUE since the code does not take *that* long to
+# run. I just wanted to remind you of that trick.
+
+sim_female <- 
+  tibble(replication = 1:100000) %>% 
+  mutate(seating_plan = map(replication, ~ seat_a_class())) %>% 
+  mutate(clumps = map_int(seating_plan, ~ female_clumped_tables(.)))
+
+```
+
 ```{r graphics}
 # Once we have the data, plotting is straightforward. The ..prop.. trick
 # required some Googling. Of course, I could just have calculated the
 # percentages by hand.
 
-sim %>% 
+sim_female %>% 
   ggplot() + 
     geom_bar(mapping = aes(x = clumps, y = ..prop..), 
              width = 0.1) +
@@ -112,6 +169,10 @@ sim %>%
          caption = "Data Collected in Gov 1006 on 2020-02-12",
          x = "Number of Single-Gender Tables out of Seven",
          y = "Percentage of Simulations out of 10,000")
+
+sim_female %>% 
+  filter(clumps >= 2) %>% 
+  nrow()/ 100000
 ```
 
 
